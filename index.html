@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CZW随机转盘选择器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+        
+        .input-section {
+            flex: 1;
+            /*min-width: 300px;*/
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .wheel-section {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            width: 100%;
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            text-align: center;
+        }
+        
+        .input-group {
+            display: flex;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            padding: 12px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .delete-btn {
+            background: #e74c3c;
+        }
+        
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        
+        .options-list {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .option-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+        }
+        
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .wheel-pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 40px;
+            background: #e74c3c;
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 10;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        #spin-btn {
+            background: #27ae60;
+            font-weight: bold;
+            padding: 15px 30px;
+        }
+        
+        #spin-btn:hover {
+            background: #219653;
+        }
+        
+        #reset-btn {
+            background: #7f8c8d;
+        }
+        
+        #reset-btn:hover {
+            background: #636e72;
+        }
+        
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .probability-hint {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>随机转盘选择器</h1>
+    
+    <div class="container">
+        <div class="input-section">
+            <h2>添加选项</h2>
+            <div class="input-group">
+                <input type="text" id="option-input" placeholder="输入选项名称">
+                <input type="number" id="probability-input" placeholder="概率" min="1" value="1">
+                <button id="add-btn">添加</button>
+            </div>
+            <div class="probability-hint">提示：概率值为相对权重，例如两个选项概率分别为1和2，则被选中的几率分别为33%和67%</div>
+            
+            <div class="options-list" id="options-list">
+                <!-- 选项将在这里动态添加 -->
+            </div>
+        </div>
+        
+        <div class="wheel-section">
+            <h2>转盘</h2>
+            <div class="wheel-container">
+                <div class="wheel-pointer"></div>
+                <canvas id="wheel"></canvas>
+            </div>
+            
+            <div class="controls">
+                <button id="spin-btn">开始旋转</button>
+                <button id="reset-btn">重置</button>
+            </div>
+            
+            <div id="result">请添加选项并开始旋转</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const options = [];
+            const optionInput = document.getElementById('option-input');
+            const probabilityInput = document.getElementById('probability-input');
+            const addBtn = document.getElementById('add-btn');
+            const optionsList = document.getElementById('options-list');
+            const wheel = document.getElementById('wheel');
+            const spinBtn = document.getElementById('spin-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const resultDiv = document.getElementById('result');
+            
+            const ctx = wheel.getContext('2d');
+            wheel.width = 300;
+            wheel.height = 300;
+            
+            let isSpinning = false;
+            let rotation = 0;
+            let currentRotation = 0;
+            
+            // 添加选项
+            addBtn.addEventListener('click', function() {
+                const optionText = optionInput.value.trim();
+                const probability = parseInt(probabilityInput.value);
+                
+                if (optionText === '') {
+                    alert('请输入选项名称');
+                    return;
+                }
+                
+                if (isNaN(probability) || probability < 1) {
+                    alert('请输入有效的概率值（大于0）');
+                    return;
+                }
+                
+                options.push({
+                    text: optionText,
+                    probability: probability
+                });
+                
+                updateOptionsList();
+                drawWheel();
+                
+                optionInput.value = '';
+                probabilityInput.value = '1';
+                optionInput.focus();
+            });
+            
+            // 更新选项列表
+            function updateOptionsList() {
+                optionsList.innerHTML = '';
+                
+                options.forEach((option, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'option-item';
+                    
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = `${option.text} (概率: ${option.probability})`;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '删除';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.addEventListener('click', function() {
+                        options.splice(index, 1);
+                        updateOptionsList();
+                        drawWheel();
+                    });
+                    
+                    item.appendChild(textSpan);
+                    item.appendChild(deleteBtn);
+                    optionsList.appendChild(item);
+                });
+            }
+            
+            // 绘制转盘
+            function drawWheel() {
+                ctx.clearRect(0, 0, wheel.width, wheel.height);
+                
+                if (options.length === 0) {
+                    ctx.font = '16px Arial';
+                    ctx.fillStyle = '#333';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('请添加选项', wheel.width / 2, wheel.height / 2);
+                    return;
+                }
+                
+                const totalProbability = options.reduce((sum, option) => sum + option.probability, 0);
+                let startAngle = 0;
+                
+                options.forEach((option, index) => {
+                    const sliceAngle = (option.probability / totalProbability) * 2 * Math.PI;
+                    
+                    // 绘制扇形
+                    ctx.beginPath();
+                    ctx.moveTo(wheel.width / 2, wheel.height / 2);
+                    ctx.arc(wheel.width / 2, wheel.height / 2, wheel.width / 2, startAngle, startAngle + sliceAngle);
+                    ctx.closePath();
+                    
+                    // 使用HSL颜色模型生成不同颜色
+                    const hue = (index * 360 / options.length) % 360;
+                    ctx.fillStyle = `hsl(${hue}, 70%, 65%)`;
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // 绘制文本
+                    ctx.save();
+                    ctx.translate(wheel.width / 2, wheel.height / 2);
+                    ctx.rotate(startAngle + sliceAngle / 2);
+                    ctx.textAlign = 'right';
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(option.text, wheel.width / 2 - 10, 0);
+                    ctx.restore();
+                    
+                    startAngle += sliceAngle;
+                });
+                
+                // 绘制中心圆
+                ctx.beginPath();
+                ctx.arc(wheel.width / 2, wheel.height / 2, 10, 0, 2 * Math.PI);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                ctx.stroke();
+            }
+            
+            // 旋转转盘
+            spinBtn.addEventListener('click', function() {
+                if (isSpinning) return;
+                if (options.length < 2) {
+                    alert('请至少添加两个选项');
+                    return;
+                }
+                
+                isSpinning = true;
+                resultDiv.textContent = '旋转中...';
+                
+                // 计算总概率
+                const totalProbability = options.reduce((sum, option) => sum + option.probability, 0);
+                
+                // 根据概率随机选择
+                let random = Math.random() * totalProbability;
+                let probabilitySum = 0;
+                let selectedIndex = 0;
+                
+                for (let i = 0; i < options.length; i++) {
+                    probabilitySum += options[i].probability;
+                    if (random <= probabilitySum) {
+                        selectedIndex = i;
+                        break;
+                    }
+                }
+                
+                // 计算选中区域的角度（转盘需要旋转的角度）
+                const sliceAngle = (options[selectedIndex].probability / totalProbability) * 360;
+                let targetRotation = 3600 + (360 / options.length) * selectedIndex - sliceAngle / 2;
+                
+                // 添加随机偏移使结果更自然
+                targetRotation += Math.random() * sliceAngle - sliceAngle / 2;
+                
+                // 设置转盘旋转
+                rotation = currentRotation + targetRotation;
+                wheel.style.transform = `rotate(${rotation}deg)`;
+                
+                // 旋转结束后显示结果
+                setTimeout(function() {
+                    resultDiv.textContent = `结果: ${options[selectedIndex].text}`;
+                    isSpinning = false;
+                    currentRotation = rotation % 360;
+                }, 4000);
+            });
+            
+            // 重置转盘
+            resetBtn.addEventListener('click', function() {
+                options.length = 0;
+                updateOptionsList();
+                drawWheel();
+                resultDiv.textContent = '请添加选项并开始旋转';
+                wheel.style.transform = 'rotate(0deg)';
+                currentRotation = 0;
+            });
+            
+            // 初始化绘制转盘
+            drawWheel();
+        });
+    </script>
+</body>
+</html>
